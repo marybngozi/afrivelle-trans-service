@@ -60,6 +60,7 @@ const getOneTransaction = async (req: Request, res: Response) => {
 
 const updateTransaction = async (data: any) => {
   try{
+    console.log(data)
     // make sure the transactionId id present
     if(!data){
       return {
@@ -113,7 +114,7 @@ const updateTransaction = async (data: any) => {
     }
 
     // publish NewTransaction Event
-    await publishToQueue("NewTransaction", newTransaction)
+    // await publishToQueue(ch,"NewTransaction", newTransaction)
 
     return {
       code: "S201",

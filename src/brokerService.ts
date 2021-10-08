@@ -1,26 +1,39 @@
+// import amqp, { Channel, Connection } from 'amqplib/callback_api';
 import * as amqp from 'amqplib/callback_api';
-const rabbitUrl: string = process.env.BROKER_URL || "";
+import * as amqpConMgr from 'amqp-connection-manager';
+const rabbitUrl = process.env.BROKER_URL;
 
-let connection: any = null;
-let channel: any = null;
+const brokerConnection = async () => {
+    try{
+        const connection = await amqpConMgr.connect(rabbitUrl);
 
-// (async () => {
-//     try {
-//         [connection, channel] = await Promise.all([amqp.connect(rabbitUrl), connection.createChannel()]);
-//     } catch (e) {
-//         console.log("Error connecting to broker", e)
-//     }
-// })();
+        const channelWrapper: amqpConMgr.ChannelWrapper = await connection.createChannel({
+            json: true,
+            setup: async (channel: amqp.ConfirmChannel): Promise<void> => {
+                // `channel` here is a regular amqplib `ConfirmChannel`. Unfortunately its typings make it return a bluebird-specific promise
+                // tslint:disable-next-line:await-promise
+                await channel.assertQueue('UpdateTransaction', {durable: true});
+            }
+        });
 
+        console.log("in connection !!!!!!!!!!!!!!!!", connection)
 
-export const publishToQueue = async (queueName: string, data: any) => {
-    channel.sendToQueue(queueName, Buffer.from(JSON.stringify(data)), {persistent: true});
+        console.log("in channel !&&&&&!", channelWrapper)
+
+        return { connection, channelWrapper }
+    }
+    catch (e) {
+        console.log("Error connecting to broker", e)
+        return;
+    }
 }
 
+const publishToQueue = async (ch: any, queueName: string, data: any) => {
+    ch.sendToQueue(queueName, new Buffer(data));
+}
 
-process.on('beforeExit', () => {
-    console.log('closing broker channel and connection')
-    channel.close()
-    connection.close()
-})
+export {
+    brokerConnection,
+    publishToQueue
+}
 

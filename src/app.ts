@@ -1,10 +1,12 @@
 import * as dotenv from "dotenv";
 import express, {Application, Request, Response} from "express";
+import * as amqpConMgr from 'amqp-connection-manager';
 import cors from "cors";
 dotenv.config();
 
 import authenticate from "./middleware";
-import { getManyTransactions, getOneTransaction } from "./transactionController";
+import { getManyTransactions, getOneTransaction, updateTransaction } from "./transactionController";
+import { brokerConnection } from "./brokerService";
 import { appUrl, sign } from "./utlis";
 
 const app = express()
@@ -12,7 +14,30 @@ const PORT: number  = parseInt(process.env.PORT as string);
 
 app.use(cors());
 
-app.use(express.json())
+app.use(express.json());
+
+// let brk: { connection: amqpConMgr.AmqpConnectionManager,
+//     channelWrapper : amqpConMgr.ChannelWrapper };
+
+let brk: any;
+
+(async () => {
+    // let connection: amqpConMgr.AmqpConnectionManager,
+    //     channelWrapper : amqpConMgr.ChannelWrapper;
+
+    brk = await brokerConnection();
+    console.log(brk, "-------------------------------------")
+    return brk;
+})();
+
+/*
+*
+* */
+brk.channelWrapper.consume('UpdateTransaction', async (msg:any) => {
+    const msgData = JSON.parse(msg.content.toString());
+    // @ts-ignore
+    await updateTransaction(msgData);
+}, {noAck: false});
 
 /*
 *  Would be adding the routes here since it is a simple app
@@ -90,5 +115,8 @@ app.listen(PORT, () => {
 
 process.on('beforeExit', () => {
     console.log('closing')
-    // connection.close()
+    // @ts-ignore
+    ch.close()
+    // @ts-ignore
+    conn.close()
 })
