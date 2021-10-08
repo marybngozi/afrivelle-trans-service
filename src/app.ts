@@ -16,29 +16,6 @@ app.use(cors());
 
 app.use(express.json());
 
-// let brk: { connection: amqpConMgr.AmqpConnectionManager,
-//     channelWrapper : amqpConMgr.ChannelWrapper };
-
-let brk: any;
-
-(async () => {
-    // let connection: amqpConMgr.AmqpConnectionManager,
-    //     channelWrapper : amqpConMgr.ChannelWrapper;
-
-    brk = await brokerConnection();
-    console.log(brk, "-------------------------------------")
-    return brk;
-})();
-
-/*
-*
-* */
-brk.channelWrapper.consume('UpdateTransaction', async (msg:any) => {
-    const msgData = JSON.parse(msg.content.toString());
-    // @ts-ignore
-    await updateTransaction(msgData);
-}, {noAck: false});
-
 /*
 *  Would be adding the routes here since it is a simple app
 * */
